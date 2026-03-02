@@ -18,6 +18,9 @@ This is a binary classification problem:
 
 The dataset used is likely the Diabetes Prediction Dataset from Kaggle, which contains patient records and their health indicators. Typical features include:
 
+
+
+
 Feature	Description
 Pregnancies	Number of times pregnant
 Glucose	Plasma glucose concentration
@@ -117,3 +120,9 @@ matplotlib / seaborn
 
 This notebook provides a beginner-friendly machine learning approach to solve a real-world health classification task, demonstrating essential steps in preprocessing, model training, and evaluation. It’s a great foundation for further exploration and improvement.
 
+You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8503
+  Network URL: http://10.72.38.52:8503
+
+  <img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/04bf1f19-4baa-45f8-af51-fbc8c75148d1" />
