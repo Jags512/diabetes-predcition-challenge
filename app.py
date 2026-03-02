@@ -1,109 +1,100 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
+import numpy as np
 import joblib
 import matplotlib.pyplot as plt
 
-# Page Config
-st.set_page_config(page_title="Diabetes Prediction", layout="wide")
+st.set_page_config(page_title="Diabetes ML Predictor", layout="wide")
 
-# Custom CSS (Dark Production UI)
-st.markdown("""
-<style>
-.big-title {
-    font-size:40px !important;
-    font-weight:bold;
-}
-.result-box {
-    padding:20px;
-    border-radius:10px;
-    font-size:20px;
-    text-align:center;
-}
-</style>
-""", unsafe_allow_html=True)
+# ---------------------------
+# LOAD MODEL
+# ---------------------------
+model = joblib.load("diabetes_model.pkl")
 
-# -----------------------------
-# HEADER
-# -----------------------------
-st.markdown("<div class='big-title'>🩺 Diabetes Risk Predictor</div>", unsafe_allow_html=True)
-st.write("Enter patient health details to predict diabetes probability using ML.")
+# Load train data to get column structure
+train = pd.read_csv("train.csv")
+
+target_col = train.columns[-1]
+feature_cols = train.drop(columns=[target_col]).columns
+
+st.title("🔬 Advanced ML Prediction App")
+st.write("Built using LightGBM | Kaggle Playground S5E12")
 
 st.divider()
 
-# -----------------------------
-# SIDEBAR INPUTS
-# -----------------------------
-st.sidebar.header("Patient Details")
+# ---------------------------
+# SIDEBAR INPUT FORM
+# ---------------------------
+st.sidebar.header("Enter Feature Values")
 
-gender = st.sidebar.radio("Gender", ["Male", "Female"])
-pregnancies = st.sidebar.slider("Pregnancies", 0, 20, 1)
-age = st.sidebar.slider("Age", 10, 90, 30)
-glucose = st.sidebar.slider("Glucose Level", 0, 200, 120)
-bp = st.sidebar.slider("Blood Pressure", 0, 150, 70)
-skin = st.sidebar.slider("Skin Thickness", 0, 100, 20)
-insulin = st.sidebar.slider("Insulin", 0, 900, 80)
-bmi = st.sidebar.slider("BMI", 0.0, 60.0, 25.0)
-dpf = st.sidebar.slider("Diabetes Pedigree Function", 0.0, 3.0, 0.5)
+input_dict = {}
 
-predict_btn = st.sidebar.button("🔍 Predict Diabetes")
+for col in feature_cols:
+    if train[col].dtype == "object":
+        options = train[col].unique()
+        input_dict[col] = st.sidebar.selectbox(col, options)
+    else:
+        min_val = float(train[col].min())
+        max_val = float(train[col].max())
+        mean_val = float(train[col].mean())
+        input_dict[col] = st.sidebar.slider(
+            col,
+            min_value=min_val,
+            max_value=max_val,
+            value=mean_val
+        )
 
-# Convert gender
-gender = 1 if gender == "Male" else 0
+predict_btn = st.sidebar.button("🚀 Predict")
 
-# -----------------------------
-# LOAD MODEL
-# -----------------------------
-model = joblib.load("diabetes_model.pkl")
-
-# -----------------------------
-# MAIN CONTENT
-# -----------------------------
+# ---------------------------
+# ENCODING (SAME AS TRAINING)
+# ---------------------------
 if predict_btn:
 
-    input_data = np.array([[pregnancies, glucose, bp, skin,
-                            insulin, bmi, dpf, age]])
+    input_df = pd.DataFrame([input_dict])
 
-    prediction = model.predict(input_data)[0]
-    probability = model.predict_proba(input_data)[0]
+    # Combine with train for consistent encoding
+    full = pd.concat([train.drop(columns=[target_col]), input_df], axis=0)
 
-    col1, col2, col3 = st.columns(3)
+    for col in full.columns:
+        if full[col].dtype == "object":
+            full[col] = full[col].astype("category").cat.codes
+
+    input_encoded = full.iloc[-1:].values
+
+    prediction = model.predict(input_encoded)[0]
+
+    # ---------------------------
+    # DISPLAY RESULT
+    # ---------------------------
+    st.subheader("📊 Prediction Result")
+
+    col1, col2 = st.columns(2)
 
     with col1:
-        st.metric("Glucose", glucose)
+        st.metric("Predicted Value", f"{prediction:.4f}")
 
     with col2:
-        st.metric("BMI", bmi)
+        st.metric("Model Type", "LightGBM Regressor")
 
-    with col3:
-        st.metric("Age", age)
-
-    st.divider()
-
-    # Result Box
-    if prediction == 1:
-        st.markdown(
-            "<div class='result-box' style='background-color:#ff4b4b;color:white;'>⚠️ DIABETES DETECTED</div>",
-            unsafe_allow_html=True)
-    else:
-        st.markdown(
-            "<div class='result-box' style='background-color:#00cc66;color:white;'>✅ NO DIABETES</div>",
-            unsafe_allow_html=True)
+    st.success("Prediction Generated Successfully!")
 
     st.divider()
 
-    # Probability Section
-    st.subheader("Prediction Probability")
+    # ---------------------------
+    # FEATURE IMPORTANCE
+    # ---------------------------
+    st.subheader("📈 Feature Importance")
 
-    col4, col5 = st.columns(2)
+    importances = model.feature_importances_
 
-    with col4:
-        st.metric("Diabetes Probability", f"{probability[1]*100:.2f}%")
+    importance_df = pd.DataFrame({
+        "Feature": feature_cols,
+        "Importance": importances
+    }).sort_values(by="Importance", ascending=False)
 
-    with col5:
-        st.metric("No Diabetes Probability", f"{probability[0]*100:.2f}%")
-
-    # Probability Chart
     fig, ax = plt.subplots()
-    ax.bar(["No Diabetes", "Diabetes"], probability)
+    ax.barh(importance_df["Feature"][:10],
+            importance_df["Importance"][:10])
+    ax.invert_yaxis()
     st.pyplot(fig)
