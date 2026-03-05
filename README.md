@@ -1,6 +1,6 @@
-# diabetes-predcition-challenge
+Production-Ready Diabetes Risk Prediction System
 kaggle linK:https://www.kaggle.com/writeups/jagrutiyuvrajdhangar/diabetes-prediction-project
-📌 Diabetes Prediction Project 
+📌 Production-Ready Diabetes Risk Prediction System
 📍 Project Overview
 
 This project is a machine learning notebook built on the Diabetes Prediction dataset from Kaggle. Its goal is to use clinical and lifestyle features of patients — such as glucose level, blood pressure, BMI, age, etc. — to predict whether a person has diabetes or not using supervised learning algorithms.
